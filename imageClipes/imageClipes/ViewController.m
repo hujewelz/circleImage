@@ -26,39 +26,42 @@
 }
 
 - (IBAction)clipesAction:(id)sender {
-   [self circleImageImage:self.imageView.image borderWidth:0 borderColor:[UIColor redColor]];
-    self.imageView.image = [self image];
+    
+   self.imageView.image = [self circleImageImage:self.imageView.image size:self.imageView.frame.size radius:200 borderWidth:0 borderColor:nil];
+   // self.imageView.image = [self image];
 }
 
-- (UIImage *)circleImageImage:(UIImage *)image borderWidth:(CGFloat)borderWidth borderColor:(UIColor *)borderColor {
+- (UIImage *)circleImageImage:(UIImage *)image size:(CGSize)size radius:(CGFloat)radius borderWidth:(CGFloat)borderWidth borderColor:(UIColor *)borderColor {
     // 1.加载原图
-    UIImage *oldImage = image;
+   // UIImage *oldImage = image;
     
     // 2.开启上下文
-    CGFloat imageW = oldImage.size.width + 3 * borderWidth;
-    CGFloat imageH = oldImage.size.height + 3 * borderWidth;
+    CGFloat imageW = size.width;// + 3 * borderWidth;
+    CGFloat imageH = size.height ;//+ 3 * borderWidth;
     CGSize imageSize = CGSizeMake(imageW, imageH);
-    UIGraphicsBeginImageContextWithOptions(imageSize, NO, 0.0);
+    UIGraphicsBeginImageContextWithOptions(imageSize, NO, [UIScreen mainScreen].scale);
     
     // 3.取得当前的上下文
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
-    // 4.画边框(大圆)
-    [borderColor set];
-    CGFloat bigRadius = imageW * 0.5; // 大圆半径
-    CGFloat centerX = bigRadius; // 圆心
-    CGFloat centerY = bigRadius;
-    CGContextAddArc(ctx, centerX, centerY, bigRadius, 0, M_PI * 2, 0);
-    CGContextFillPath(ctx); // 画圆
+    CGFloat borderRadius = radius + borderWidth > MIN(imageW, imageH) ? MIN(imageW, imageH) : radius + borderWidth;
+    UIBezierPath *borderPath = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(0, 0, imageW, imageH) cornerRadius:borderRadius];
+    [borderColor setFill];
+    CGContextAddPath(ctx, borderPath.CGPath);
+    CGContextFillPath(ctx);
     
-    // 5.小圆
-    CGFloat smallRadius = bigRadius - borderWidth-2;
-    CGContextAddArc(ctx, centerX, centerY, smallRadius, 0, M_PI * 2, 0);
+    
+    CGFloat roundW = imageW - 2*borderWidth;
+    CGFloat roundH = imageH - 2*borderWidth;
+    CGFloat clipRadius = MIN(radius,  MIN(imageH, imageW));
+    UIBezierPath *roundPath = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(borderWidth, borderWidth, roundW, roundH) cornerRadius:clipRadius];
+    
+    CGContextAddPath(ctx, roundPath.CGPath);
     // 裁剪(后面画的东西才会受裁剪的影响)
     CGContextClip(ctx);
     
     // 6.画图
-    [oldImage drawInRect:CGRectMake(0, 0, oldImage.size.width, oldImage.size.height)];
+    [image drawInRect:CGRectMake(0, 0, imageW, imageH)];
     
     // 7.取图
     UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
@@ -66,7 +69,7 @@
     // 8.结束上下文
     UIGraphicsEndImageContext();
     
-    NSData *imageData = UIImagePNGRepresentation(newImage);
+    NSData *imageData = UIImageJPEGRepresentation(newImage, 1);
     
     NSString *cache = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
     NSString *path = [cache stringByAppendingPathComponent:@"a.png"];
@@ -81,6 +84,7 @@
     NSString *cache = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
     NSString *path = [cache stringByAppendingPathComponent:@"a.png"];
     UIImage *image = [UIImage imageWithContentsOfFile:path];
+    NSLog(@"path: %@", path);
     return image;
 }
 
